@@ -169,5 +169,5 @@ elif choix == "Analyse Type Emploi":
             legend_name='Taux d\'Insertion (%)'
         ).add_to(m)
 
-        st.title('Carte Choroplète des Taux d\'Insertions par Académie')
+        st.title('Carte des Taux d\'Insertions par Académie')
         folium_static(m)
