@@ -109,7 +109,7 @@ elif choix == "Analyse Type Emploi":
     #-------------------------------------------------------------Taux d'insertion par academie------------------------------------------------------------------#
 
     st.subheader("Plot Du Taux d'insertion par academie")
-
+    
     selected_annees = st.multiselect("Sélectionnez les années (academie)", annees,annees, key="taux_insertion_par_academie")
     df_insertion_par_academie_par_annee = df[df["annee"].isin(selected_annees)].groupby("academie")["taux_dinsertion"].mean().reset_index()
     
@@ -166,7 +166,8 @@ elif choix == "Analyse Type Emploi":
             fill_color='Pastel1',
             fill_opacity=0.5,
             line_opacity=0.2,
-            legend_name='Taux d\'Insertion (%)'
+            legend_name='Taux d\'Insertion (%)',
+            threshold_scale=[82,84, 86, 88, 90, 92,94,96]
         ).add_to(m)
 
         st.title('Carte des Taux d\'Insertions par Académie')
