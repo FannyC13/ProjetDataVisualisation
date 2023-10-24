@@ -2,21 +2,20 @@ import streamlit as st
 import streamlit as st
 import streamlit as st
 import pandas as pd
-import altair as alt
 import matplotlib.pyplot as plt
 import plotly.express as px
-import numpy as np
 import streamlit as st
 import json
 import folium
 from streamlit_folium import folium_static
 import seaborn as sns
 from functools import wraps
+import plotly.graph_objects as go
 import time
 
-st.set_page_config(layout="wide")
 
 #Création d'un cache pour load la data
+
 @st.cache_data
 def load_data():
     df = pd.read_csv('data_cleaned_insertion_pro.csv')
@@ -31,12 +30,12 @@ def decorator_log_time(func):
         total_time = end_time - start_time
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         with open("execution_logs.txt", "a") as file:
-            file.write(f'Function {func.__name__} executed in {total_time:.2f} seconds at {timestamp}')
+            file.write(f'Function {func.__name__} executed in {total_time:.2f} seconds at {timestamp}\n')
         return result
     return wrapper
 
-#-------------------------------------------------------------Réponses par académies par années------------------------------------------------------------------#
 
+#-------------------------------------------------------------Réponses par académies par années------------------------------------------------------------------#
 
 def display_reponses_par_academies_par_annee(df):
 
@@ -52,25 +51,10 @@ def display_reponses_par_academies_par_annee(df):
 
 
 def display_Reponses_Domaine_Annee(df):
-    st.subheader("Plot Du Nombre de réponses par domaine :green_book:")
-    annees = df["annee"].unique()
-    selected_annees = st.multiselect("Sélectionnez les années (domaine)", annees, annees)
-    df_reponses_par_domaine_par_annee = df[df["annee"].isin(selected_annees)].groupby("domaine")["nombre_de_reponses"].sum().reset_index()
-    fig = px.bar(df_reponses_par_domaine_par_annee, x="domaine",y="nombre_de_reponses", title="Nombre de Réponses par domaine")
-    st.plotly_chart(fig)
-
-    st.markdown("On peut voir ici, un grand nombre de réponses dans le domaine du droit et assez peu en Lettres sur chaque année.")
-
+   
+    #Bar Chart
     st.subheader("Plot Du Nombre de réponses par domaine :green_book:")
 
-    def format_number(num):
-        if num < 1000:
-            return str(num)
-        elif num < 1000000:
-            return f'{num / 1000:.2f}K'
-        else:
-            return f'{num / 1000000:.2f}M'
-        
     annees = df["annee"].unique()
     selected_annees = st.multiselect("Sélectionnez les années (domaine)", annees, annees, key='test')
     df_reponses_par_domaine_par_annee = df[df["annee"].isin(selected_annees)].groupby("domaine")["nombre_de_reponses"].sum().reset_index()
@@ -129,6 +113,8 @@ def display_taux_insertion_par_discipline(df,annees) :
         )
 
     st.plotly_chart(fig)
+
+    df_insertion_par_par_annee = df.groupby("annee")["taux_dinsertion"].mean().reset_index()
 
     st.markdown("Ce graphique nous dévoile les domaines d'études des masters présentant les taux d'insertion les plus élevés, à savoir l'enseignement, l'informatique, les sciences de l'ingénieur et le droit. À l'inverse, les domaines affichant les taux d'insertion les plus bas sont l'histoire-géographie et les sciences de la vie et de la terre. Ainsi, plus de 15 % d'étudiants qui n'ont pas trouvé d'emploi à la suite de leur formation. ")
 
@@ -250,16 +236,15 @@ def taux_insertion_carte(df,annees) :
         f'Carte des {column_to_display.replace("_", " ")} par Académie :world_map:')
     folium_static(m)
 
-    st.markdown("- Cette carte fournit une représentation visuelle des différentes variables en fonction de l'académie, ce qui facilite leur compréhension")
-    st.markdown("- Une analyse de la carte révèle que les régions situées au centre de la France affichent les taux d'insertion les plus élevés. Cependant, une comparaison entre 2012 et 2019 révèle un changement de tendance : en 2012, les académies de l'ouest et de l'est avaient des taux d'insertion plus élevés. En 2019, la tendance sest inversé, avec une concentration plus marquée d'emplois dans le centre.")
-    st.markdown("- L'analyse des salaires révèle des rémunérations nettement plus élevées autour de Paris, ainsi qu'aux extrémités, telles que Lille, Nancy-Metz et Strasbourg. En revanche, la Corse présente les salaires les plus bas pour les emplois à temps plein. Une comparaison entre 2012 et 2019 indique une augmentation générale des salaires au fil du temps dans chaque ville.")
-    st.markdown("- La part de femmes dans les emplois varie, avec une prédominance à Paris et à Dijon. En moyenne, cette part se situe entre 53 % et 65 %. Cependant, une comparaison entre 2012 et 2019 montre une diminution globale de la proportion de femmes.")
-    st.markdown(
-        "- Également, on observe une forte augmentation de la part d'emplois stables entre 2012 et 2019.")
-    st.markdown("- Une tendance marquée est la forte hausse de la part d'emplois cadres en France. En 2012, elle se situait en moyenne entre 52 % et 62 %, mais en 2019, elle se situe principalement entre 62 % et 72 %")
-    st.markdown("- En analysant la proportion de diplômes boursiers, on constate que Versailles présente très peu de diplômes boursiers, bien que le taux d'insertion y soit élevé et le taux de réponses moyen. Les taux les plus bas de diplômes boursiers se trouvent autour de Paris, tandis que les régions de l'est, de l'ouest et du sud affichent les taux les plus élevés. La comparaison entre 2012 et 2019 révèle une diminution de la part de diplômes boursiers au fil du temps")
+    #- Cette carte fournit une représentation visuelle des différentes variables en fonction de l'académie, ce qui facilite leur compréhension"
+    #"- Une analyse de la carte révèle que les régions situées au centre de la France affichent les taux d'insertion les plus élevés. Cependant, une comparaison entre 2012 et 2019 révèle un changement de tendance : en 2012, les académies de l'ouest et de l'est avaient des taux d'insertion plus élevés. En 2019, la tendance sest inversé, avec une concentration plus marquée d'emplois dans le centre."
+    #"- L'analyse des salaires révèle des rémunérations nettement plus élevées autour de Paris, ainsi qu'aux extrémités, telles que Lille, Nancy-Metz et Strasbourg. En revanche, la Corse présente les salaires les plus bas pour les emplois à temps plein. Une comparaison entre 2012 et 2019 indique une augmentation générale des salaires au fil du temps dans chaque ville."
+    #"- La part de femmes dans les emplois varie, avec une prédominance à Paris et à Dijon. En moyenne, cette part se situe entre 53 % et 65 %. Cependant, une comparaison entre 2012 et 2019 montre une diminution globale de la proportion de femmes."
+    #"- Également, on observe une forte augmentation de la part d'emplois stables entre 2012 et 2019."
+    #"- Une tendance marquée est la forte hausse de la part d'emplois cadres en France. En 2012, elle se situait en moyenne entre 52 % et 62 %, mais en 2019, elle se situe principalement entre 62 % et 72 %"
+    #"- En analysant la proportion de diplômes boursiers, on constate que Versailles présente très peu de diplômes boursiers, bien que le taux d'insertion y soit élevé et le taux de réponses moyen. Les taux les plus bas de diplômes boursiers se trouvent autour de Paris, tandis que les régions de l'est, de l'ouest et du sud affichent les taux les plus élevés. La comparaison entre 2012 et 2019 révèle une diminution de la part de diplômes boursiers au fil du temps"
 
-    st.write("En somme, l'analyse montre que les régions situés au centre du pays semblent offrir de meilleures perspectives d'insertions professionnelles. Les salaires y sont également plus élevés. La forte augmentation de la part des emplois cadres suggère une tendance vers une économie plus axée sur les emplois qualifiés et professionnels. Enfin la diminution de la part de diplômes boursiers montre une évolutions dans les politiques de bourses.")
+    st.write("En somme, l'analyse montre que les régions situés au centre du pays semblent offrir de meilleures perspectives d'insertions professionnelles. Les salaires y sont également plus élevés. La forte augmentation de la part des emplois cadres suggère une tendance vers une économie plus axée sur les emplois qualifiés et professionnels. Enfin la diminution de la part de diplômes boursiers montre une évolution dans les politiques de bourses.")
 
 #-------------------------------------------------------------Taux de chomage par discipline ------------------------------------------------------------------#
 
@@ -269,12 +254,14 @@ def display_taux_chomage_discipline(df):
     df_chomage_par_discipline = df.groupby('discipline')['taux_chomage'].mean().reset_index()
     fig = px.bar(df_chomage_par_discipline, x='discipline',
                     y='taux_chomage', title='Taux de chomage par discipline')
-    st.plotly_chart(fig)
+    
+ 
+    st.plotly_chart(fig,  use_container_width=400, height = 400)
 
-    st.title('Taux de chomage par discipline (st.bar_chart)')
-    st.bar_chart(df_chomage_par_discipline, x='discipline', y='taux_chomage')
 
-    st.markdown("En observant ce barplot, , il est clair que les domaines d'études en lettres (comme l'histoire et les lettres) et les sciences sociales affichent des taux de chômage considérablement plus élevés. En revanche, les domaines de l'informatique et de l'enseignement présentent des taux de chômage nettement plus bas.")
+    
+    st.title('Taux de chomage par discipline (Integrated)')
+    st.bar_chart(df_chomage_par_discipline, x='discipline', y='taux_chomage', use_container_width=400, height=400)
 
 
 #-------------------------------------------------------------Comparaison taux de chomage par discipline et taux chomage regional  ------------------------------------------------------------------#
@@ -367,42 +354,46 @@ def display_etudiants_exterieurs_region_academie(df) :
     st.markdown("On remarque que la plupart des étudiants préfèrent rester dans leurs régions d'études, ce qui indique une tendance à la localité. Toutefois, dans le cas des régions ultramarines, on constate généralement que ces étudiants ont davantage tendance à chercher des opportunités de travail dans d'autres régions. Cette dynamique pourrait s'expliquer par le fait que ces régions offrent peut-être moins d'opportunités d'emploi dans leur domaine d'études, les incitant ainsi à se déplacer vers d'autres régions.")
 
 #-------------------------------------------------------------Taux de femmes par discipline------------------------------------------------------------------#
+
 def display_femmes_discipline(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
-    st.subheader("Taux de femmes par discipline")
+    st.subheader("Taux de femmes par discipline")    
 
     discipline = st.selectbox('Choisissez une discipline', df['discipline'].unique())
 
     df_filtered = df[df['discipline'] == discipline]
-
     femmes = df_filtered['femmes'].mean()
     hommes = 100 - femmes
-
     st.write(f"Taux de femmes : {femmes}%")
     st.write(f"Taux d'hommes : {hommes}%")
+    fig = go.Figure(data=[go.Pie(labels=['Femmes', 'Hommes'], values=[femmes, hommes], marker_colors=['#e69adf', '#91b6f2'])])
+    fig.update_layout(title_text='Répartition par sexe')
+    st.plotly_chart(fig)
 
-    # Création du pie chart
-    fig, ax = plt.subplots(figsize=(3, 3))
-    ax.pie([femmes, hommes], labels=['Femmes', 'Hommes'], colors=['#e69adf', '#91b6f2'], autopct='%1.1f%%')
-    plt.title('Répartition par sexe')
-    st.pyplot(fig)
+    
     
 #-------------------------------------------------------------Taux de femmes avec le temps------------------------------------------------------------------#
 
 def display_femmes_temps(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
-    st.subheader("Taux de femmes avec le temps")
-    
+    st.title("Taux de femmes avec le temps")
+
     annees = df["annee"].unique()
-    selected_annees = st.multiselect("Sélectionnez les années", annees,annees)
+    selected_annees = st.multiselect("Sélectionnez les années", annees, annees)
+
     
-    df_femmes_par_discipline_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee", "discipline"])["femmes"].mean().reset_index()
+    col1, col2 = st.columns(2)
 
-    fig = px.line(df_femmes_par_discipline_par_annee, x="annee", y="femmes", color="discipline", title="Taux de femmes par discipline et par année")
-    st.plotly_chart(fig)
+    with col1:
+        
+        df_femmes_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee"])["femmes"].mean().reset_index()
+        st.markdown("**Taux de femmes total par année**")
+        x_axis_range = st.slider("Select x-axis range", min_value=min(df_femmes_par_annee['annee']), max_value=max(df_femmes_par_annee['annee']), value=(min(df_femmes_par_annee['annee']), max(df_femmes_par_annee['annee'])))
+        st.line_chart(df_femmes_par_annee.query(f"annee >= {x_axis_range[0]} and annee <= {x_axis_range[1]}"), x="annee", y="femmes")
 
-    df_femmes_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee"])["femmes"].mean().reset_index()
-    fig = px.line(df_femmes_par_annee, x="annee", y="femmes", title="Taux de femmes total par année")
-    fig.update_yaxes(range=[30, 70])
-    st.plotly_chart(fig)
+    with col2:
+        st.markdown("**Taux de femmes par discipline et par année**")
+        df_femmes_par_discipline_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee", "discipline"])["femmes"].mean().reset_index()
+        fig = px.line(df_femmes_par_discipline_par_annee, x="annee", y="femmes", color="discipline")
+        st.plotly_chart(fig)
 
     st.markdown("Attention : un pourcentage moyen de femmes plus élevé ne veut pas dire qu'il y a plus de femmes que d'hommes au sein des universités.")
     st.markdown("Exemple : il y a 90% de femmes en psychologie, et 10% de femmes en informatique. Seulement, si il y a 10000 étudiants en informatique et 500 étudiants en psychologie, alors il y aura toujours plus d'hommes que de femmes.")
@@ -411,92 +402,26 @@ def display_femmes_temps(df) :
 #-------------------------------------------------------------Check corrélations entre le taux de femmes et les autres taux------------------------------------------------------------------#
 
 def display_correlation_femme_variables(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
-    st.subheader("A quel point le taux de femmes est corrélé avec les autres valeurs de notre dataset ?")
+        st.subheader("A quel point le taux de femmes est corrélé avec les autres valeurs de notre dataset ?")
 
-    df1 = df.dropna(subset=['femmes', 'emplois_cadre', 'taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein', 'salaire_net_median_des_emplois_a_temps_plein']) # Il y a un problème dans le scatter si une des trois colonnes est NaN
-    df1['femmes'] = df1['femmes'] / 100
-    
-    variables = ['emplois_cadre', 'taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein', 'salaire_net_median_des_emplois_a_temps_plein']
-    for var in variables:
-        df1[var] = df1[var] / 100
+        df1 = df.dropna(subset=['femmes', 'emplois_cadre', 'taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein', 'salaire_net_median_des_emplois_a_temps_plein']) # Il y a un problème dans le scatter si une des trois colonnes est NaN
+        df1['femmes'] = df1['femmes'] / 100
+        
+        variables = ['emplois_cadre', 'taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein', 'salaire_net_median_des_emplois_a_temps_plein']
+        for var in variables:
+            df1[var] = df1[var] / 100
 
-    variable = st.selectbox('Choisissez une variable', variables)
+        variable = st.selectbox('Choisissez une variable', variables)
 
-    # Création du scatter plot avec ligne de régression
-    plt.figure(figsize=(10, 6))
-    sns.regplot(x='femmes', y=variable, data=df1, scatter_kws={'s': 2, 'color': '#e08610'}, line_kws={'color': '#8548ab'})
-    plt.title(f'Corrélation entre le nombre de femmes et le nombre de {variable}')
-    plt.xlabel('Taux de femmes')
-    plt.ylabel(f'Taux de {variable}')
-    st.pyplot(plt)
+        # Création du scatter plot avec ligne de régression
+        plt.figure(figsize=(10, 6))
+        sns.regplot(x='femmes', y=variable, data=df1, scatter_kws={'s': 2, 'color': '#e08610'}, line_kws={'color': '#8548ab'})
+        plt.title(f'Corrélation entre le nombre de femmes et le nombre de {variable}')
+        plt.xlabel('Taux de femmes')
+        plt.ylabel(f'Taux de {variable}')
+        st.pyplot(plt)
 
-    st.markdown("Malheureusement, on remarque que toutes les droites de régression vont dans le même sens : plus il y a de femmes dans une filière, moins le salaire à la sortie est ahaut. Il en va de même pour le taux d'insertion, le taux d'emplois stables et le taux d'emplois à temps plein... La pente est d'autant plus importante pour les salaires.", unsafe_allow_html=True)
-#-------------------------------------------------------------Taux de femmes par discipline------------------------------------------------------------------#
-def display_femmes_discipline(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
-    st.subheader("Taux de femmes par discipline")
-    discipline = st.selectbox('Choisissez une discipline', df['discipline'].unique())
-
-    df_filtered = df[df['discipline'] == discipline]
-
-    femmes = df_filtered['femmes'].mean()
-    hommes = 100 - femmes
-
-    st.write(f"Taux de femmes : {femmes}%")
-    st.write(f"Taux d'hommes : {hommes}%")
-
-    # Création du pie chart
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.pie([femmes, hommes], labels=['Femmes', 'Hommes'],
-            colors=['#e69adf', '#91b6f2'], autopct='%1.1f%%')
-    plt.title('Répartition par sexe')
-    st.pyplot(fig)
-#-------------------------------------------------------------Taux de femmes avec le temps------------------------------------------------------------------#
-
-def display_femmes_temps(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
-    st.subheader("Taux de femmes avec le temps")
-
-    annees = df["annee"].unique()
-    selected_annees = st.multiselect("Sélectionnez les années", annees, annees)
-
-    df_femmes_par_discipline_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee", "discipline"])["femmes"].mean().reset_index()
-
-    fig = px.line(df_femmes_par_discipline_par_annee, x="annee", y="femmes",color="discipline", title="Taux de femmes par discipline et par année")
-    st.plotly_chart(fig)
-
-    df_femmes_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee"])["femmes"].mean().reset_index()
-    fig = px.line(df_femmes_par_annee, x="annee", y="femmes",title="Taux de femmes total par année")
-    fig.update_yaxes(range=[30, 70])
-    st.plotly_chart(fig)
-
-    st.line_chart(df_femmes_par_annee.set_index("annee")["femmes"])
-    st.title("Taux de femmes total par année")
-
-#-------------------------------------------------------------Check corrélations entre le taux de femmes et les autres taux------------------------------------------------------------------#
-
-def display_correlation_femme_variables(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
-    st.subheader("A quel point le taux de femmes est corrélé avec les autres valeurs de notre dataset ?")
-
-    # Il y a un problème dans le scatter si une des trois colonnes est NaN
-    df1 = df.dropna(subset=['femmes', 'emplois_cadre','taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein'])
-
-    # Conversion des pourcentages en nombres décimaux
-    df1['femmes'] = df1['femmes'] / 100
-
-    variables = ['emplois_cadre', 'taux_dinsertion','emplois_stables', 'emplois_a_temps_plein']
-    for var in variables:
-        df1[var] = df1[var] / 100
-
-    variable = st.selectbox('Choisissez une variable', variables)
-
-    # Création du scatter plot avec ligne de régression
-    plt.figure(figsize=(10, 6))
-    sns.regplot(x='femmes', y=variable, data=df1, scatter_kws={'s': 2, 'color': '#e08610'}, line_kws={'color': '#8548ab'})
-    plt.title(f'Corrélation entre le nombre de femmes et le nombre de {variable}')
-    plt.xlabel('Taux de femmes')
-    plt.ylabel(f'Taux de {variable}')
-    st.pyplot(plt)
-
-    st.markdown("Malheureusement, on remarque que toutes les droites de régression vont dans le même sens : plus il y a de femmes dans une filière, moins le salaire à la sortie est ahaut. Il en va de même pour le taux d'insertion, le taux d'emplois stables et le taux d'emplois à temps plein...", unsafe_allow_html=True)
+        st.markdown("Malheureusement, on remarque que toutes les droites de régression vont dans le même sens : plus il y a de femmes dans une filière, moins le salaire à la sortie est ahaut. Il en va de même pour le taux d'insertion, le taux d'emplois stables et le taux d'emplois à temps plein... La pente est d'autant plus importante pour les salaires.", unsafe_allow_html=True)
 
 #-------------------------------------------------------------Histogrammes par académie------------------------------------------------------------------#
 
@@ -545,6 +470,26 @@ def display_histogram_discipline(df,discipline_list) :
     st.pyplot(fig)
 
 #-------------------------------------------------------------Barplots par discipline et académie------------------------------------------------------------------#
+def area_salaires(df):
+    st.subheader('Moyenne des salaires par année')
+    
+    df3 = df.dropna(subset=['annee', 'salaire_net_mensuel_median_regional', 'salaire_net_mensuel_regional_1er_quartile', 'salaire_net_mensuel_regional_3eme_quartile'])
+
+    # Etrangement on a des problèmes de types malgré le cleaning, on rechange tout en float
+    numeric_columns = ['salaire_net_mensuel_median_regional', 'salaire_net_mensuel_regional_1er_quartile', 'salaire_net_mensuel_regional_3eme_quartile']
+    df3[numeric_columns] = df3[numeric_columns].astype(float)
+
+    # On filtre par académie
+    academie = st.selectbox('Choisissez une académie', df['academie'].unique())
+    df3 = df3[df3['academie'] == academie]
+
+    # On calcule la moyenne des quartiles sur les valeurs numériques.
+    df_moyenne_par_annee = df3.groupby('annee')[numeric_columns].mean()
+
+    st.area_chart(df_moyenne_par_annee)
+
+#-------------------------------------------------------------Barplots par discipline et académie------------------------------------------------------------------#
+
 def display_barplot_par_acad_discipline(df, discipline_list, academie_list):
     st.subheader("Salaires médians par discipline et par académie.")
     
@@ -578,7 +523,7 @@ def display_pauvres(df):
 
     st.markdown("La courbe de régression montre que plus il y a d'étudiants boursiers dans une formation, plus le salaire en sortie d'études est bas. On peut tirer différentes conclusions de cette observation : est-ce qu'il existe réellement une notion de mérite, si un élève boursier gagne moins qu'un autre élève qui se forme dans la même discipline, au sein de deux formations publiques ?")
 
-#-------------------------------------------------------------MAIN FUNCTION -----------------------------------------------------------------#
+#-----------------------------------------------------------------------MAIN FUNCTION ----------------------------------------------------------------------------------------------#
 
 @decorator_log_time
 def main():
@@ -623,6 +568,7 @@ def main():
         discipline_list = df['discipline'].unique()
         display_histogramme_academie(df, academie_list)
         display_histogram_discipline(df,discipline_list)
+        area_salaires(df)
         display_barplot_par_acad_discipline(df, discipline_list, academie_list)
         display_pauvres(df)
    
