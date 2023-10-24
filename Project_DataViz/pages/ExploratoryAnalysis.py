@@ -8,7 +8,7 @@ from ydata_profiling import ProfileReport
 
 st.set_page_config(layout="wide")
 
-st.header("Exploratory Analysis")
+st.header("Exploratory Analysis :eyeglasses:")
 
 @st.cache_data
 def load_data():
@@ -58,6 +58,11 @@ with tab1:
     
 
 with tab2:
+    @st.cache
+    def generate_report(df):
+        report = ProfileReport(df, title="Profiling Report", minimal=True)
+        return report
+        
     st.header("Test Profile")
     report_generated = False
     report = ProfileReport(df, title="Profiling Report", minimal=True)
@@ -75,7 +80,7 @@ with tab2:
             report_generated = True
 
 with tab3:
-    st.header("Data Cleaning")
+    st.header("Data Cleaning :broom:")
     cleaned_df = clean_and_preprocess_data(df)
 
     st.dataframe(df)

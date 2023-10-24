@@ -11,23 +11,38 @@ import json
 import folium
 from streamlit_folium import folium_static
 import seaborn as sns
+from functools import wraps
+import time
 
 st.set_page_config(layout="wide")
 
-
+#Création d'un cache pour load la data
 @st.cache_data
 def load_data():
     df = pd.read_csv('data_cleaned_insertion_pro.csv')
     return df
+
+def decorator_log_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        total_time = end_time - start_time
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open("execution_logs.txt", "a") as file:
+            file.write(f'Function {func.__name__} executed in {total_time:.2f} seconds at {timestamp}')
+        return result
+    return wrapper
 
 #-------------------------------------------------------------Réponses par académies par années------------------------------------------------------------------#
 
 
 def display_reponses_par_academies_par_annee(df):
 
-    st.subheader("Plot Du Nombre de réponses par académies")
+    st.subheader("Plot Du Nombre de réponses par académies :classical_building:")
     annees = df["annee"].unique()
-    selected_annees = st.multiselect("Sélectionnez les années (academie)", annees, annees)
+    selected_annees = st.multiselect("Sélectionnez les années (academie)", annees, annees) #Crée un multiselect pour pouvoir sélectionner plusieurs années
     df_reponses_par_academie_par_annee = df[df["annee"].isin(selected_annees)].groupby("academie")["nombre_de_reponses"].sum().reset_index()
     fig = px.bar(df_reponses_par_academie_par_annee, x="academie", y="nombre_de_reponses", title="Nombre de Réponses par Académie")
     st.plotly_chart(fig)
@@ -37,26 +52,42 @@ def display_reponses_par_academies_par_annee(df):
 
 
 def display_Reponses_Domaine_Annee(df):
-    st.subheader("Plot Du Nombre de réponses par domaine")
+    st.subheader("Plot Du Nombre de réponses par domaine :green_book:")
     annees = df["annee"].unique()
     selected_annees = st.multiselect("Sélectionnez les années (domaine)", annees, annees)
     df_reponses_par_domaine_par_annee = df[df["annee"].isin(selected_annees)].groupby("domaine")["nombre_de_reponses"].sum().reset_index()
     fig = px.bar(df_reponses_par_domaine_par_annee, x="domaine",y="nombre_de_reponses", title="Nombre de Réponses par domaine")
     st.plotly_chart(fig)
 
-    st.markdown(
-        "On peut voir ici, un grand nombre de réponses dans le domaine du droit et assez peu en Lettres sur chaque année.")
+    st.markdown("On peut voir ici, un grand nombre de réponses dans le domaine du droit et assez peu en Lettres sur chaque année.")
 
+    st.subheader("Plot Du Nombre de réponses par domaine :green_book:")
+
+    def format_number(num):
+        if num < 1000:
+            return str(num)
+        elif num < 1000000:
+            return f'{num / 1000:.2f}K'
+        else:
+            return f'{num / 1000000:.2f}M'
+        
+    annees = df["annee"].unique()
+    selected_annees = st.multiselect("Sélectionnez les années (domaine)", annees, annees, key='test')
+    df_reponses_par_domaine_par_annee = df[df["annee"].isin(selected_annees)].groupby("domaine")["nombre_de_reponses"].sum().reset_index()
+
+    st.bar_chart(df_reponses_par_domaine_par_annee, x="domaine", y = "nombre_de_reponses")
+
+    st.markdown("On peut voir ici, un grand nombre de réponses dans le domaine du droit et assez peu en Lettres sur chaque année.")
 
 #-------------------------------------------------------------Evolution Du Nombre de cadre par discipline------------------------------------------------------------------#
 
-def display_evolution_cadre_discipline(df,annees) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
-    st.subheader("Plot Evolution Du Nombre de cadre par discipline")
+def display_evolution_cadre_discipline(df,annees) :
 
+    st.subheader("Plot Evolution Du Nombre de cadre par discipline :notebook:")
     selected_annees = st.multiselect("Sélectionnez les années (cadres)", annees, annees)
-
     df_cadres_par_discipline_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee", "discipline"])["emplois_cadre"].sum().reset_index()
 
+    #Les différents plots permettent de visualiser l'évolution de chacun au fil du temps, de les comparer également et d'avoir une vision sur la répartition de chaque disciplines par rapport aux autres
     plot_choice = st.radio("Select a Plot", ["Bar Chart 1", "Line Chart", "Bar Chart 2"])
 
     if plot_choice == "Bar Chart 1":
@@ -76,19 +107,18 @@ def display_evolution_cadre_discipline(df,annees) :
 
 #------------------------------------------------------------- Taux d'insertion par discipline------------------------------------------------------------------#
 def display_taux_insertion_par_discipline(df,annees) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
-    st.subheader("Plot Du Taux d'insertion par discipline")
+    st.subheader("Plot Du Taux d'insertion par discipline :scroll:")
 
     selected_annees = st.multiselect("Sélectionnez les années", annees, annees, key="taux_insertion_par_discipline")
 
-    df_insertion_par_disicpline_par_annee = df[df["annee"].isin(
-        selected_annees)].groupby("discipline")["taux_dinsertion"].mean().reset_index()
+    df_insertion_par_disicpline_par_annee = df[df["annee"].isin(selected_annees)].groupby("discipline")["taux_dinsertion"].mean().reset_index()
 
     fig = px.bar(df_insertion_par_disicpline_par_annee, x="discipline", y="taux_dinsertion", title="Taux d'insertion par discipline")
 
     for i in range(len(df_insertion_par_disicpline_par_annee)):
         discipline = df_insertion_par_disicpline_par_annee.loc[i, "discipline"]
         taux_insertion = df_insertion_par_disicpline_par_annee.loc[i,"taux_dinsertion"]
-        taux_insertion_percentage = f"{taux_insertion:.2f}%"
+        taux_insertion_percentage = f"{taux_insertion:.2f}%" #Ajout de l'annotation du taux d'insertion
         fig.add_annotation(
             x=discipline,
             y=taux_insertion,
@@ -105,7 +135,7 @@ def display_taux_insertion_par_discipline(df,annees) :
 #-------------------------------------------------------------Taux d'insertion par academie------------------------------------------------------------------#
 
 def display_taux_insertion_par_academie(df,annees) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
-    st.subheader("Plot Du Taux d'insertion par academie")
+    st.subheader("Plot Du Taux d'insertion par academie :memo:")
 
     selected_annees = st.multiselect("Sélectionnez les années (academie)", annees, annees, key="taux_insertion_par_academie")
 
@@ -130,11 +160,14 @@ def display_taux_insertion_par_academie(df,annees) :
 
 #-------------------------------------------------------------Taux d'insertion carte-----------------------------------------------------------------#
 
+#Utilisation d'un geojson pour avoir le contour des académies
 def taux_insertion_carte(df,annees) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
     with open('academie.geojson') as f:
         geojson_data = json.load(f)
 
-    selected_annees = st.multiselect("Sélectionnez les années (academie)", annees, annees, key="map_taux_insertion_par_academie")
+    selected_annees = st.multiselect("Sélectionnez les années", annees, annees, key="map_taux_insertion_par_academie")
+
+    #Création des différents dataset en fonction de la variable à afficher 
 
     df_insertion_par_academie_par_annee = df[df["annee"].isin(selected_annees)].groupby("academie")["taux_dinsertion"].mean().reset_index()
     df_femmes_par_academie_par_annee = df[df["annee"].isin(selected_annees)].groupby("academie")["femmes"].mean().reset_index()
@@ -168,9 +201,9 @@ def taux_insertion_carte(df,annees) :
         "de_diplomes_boursiers": df_diplome_boursiers_par_academie,
     }
 
-    column_to_display = st.selectbox(
-        "Selectionner la colonne à analyser par académie", list(dataframes.keys()))
+    column_to_display = st.selectbox("Selectionner la colonne à analyser par académie", list(dataframes.keys()))
 
+    #Calcul du gap pour définir les bins, l'intervalle pour l'affichage
     selected_df = dataframes[column_to_display]
     selected_df_bins = dataframes_bins[column_to_display]
     min_value = selected_df_bins[column_to_display].min()
@@ -181,11 +214,11 @@ def taux_insertion_carte(df,annees) :
     if(threshold_scale[7] < max_value):
         threshold_scale[7] = max_value
 
-    m = folium.Map(location=[48.8566, 2.3522], zoom_start=5)  # France
+    m = folium.Map(location=[48.8566, 2.3522], zoom_start=5)  # Centrer sur la France
 
     for feature in geojson_data['features']:
         academie = feature['properties']['name']
-        tooltip = f'{academie}<br>'
+        tooltip = f'{academie}<br>' #Ajout des annotations
         value = selected_df[selected_df['academie']== academie][column_to_display].mean()
         tooltip += f'{column_to_display.replace("_", " ").capitalize()} : {value:.2f}'
         latitude, longitude = feature['properties']['geo_point_2d']
@@ -195,9 +228,11 @@ def taux_insertion_carte(df,annees) :
             icon=folium.DivIcon(
                 icon_size=(20, 20),
                 icon_anchor=(10, 10),
-                html=f'<i class="fa fa-map-marker fa-2x" style="color: #61677A;"></i>'
+                html=f'<i class="fa fa-map-marker fa-2x" style="color: #61677A;"></i>' #Ajout d'une icone pour les annotations
             )
         ).add_to(m)
+
+    #Chloropleth permet de diviser par couleurs les académies
 
     folium.Choropleth(
         geo_data=geojson_data,
@@ -212,7 +247,7 @@ def taux_insertion_carte(df,annees) :
     ).add_to(m)
 
     st.title(
-        f'Carte des {column_to_display.replace("_", " ")} par Académie')
+        f'Carte des {column_to_display.replace("_", " ")} par Académie :world_map:')
     folium_static(m)
 
     st.markdown("- Cette carte fournit une représentation visuelle des différentes variables en fonction de l'académie, ce qui facilite leur compréhension")
@@ -231,49 +266,23 @@ def taux_insertion_carte(df,annees) :
 def display_taux_chomage_discipline(df):
 
     df['taux_chomage'] = 100 - df['taux_dinsertion']
-    df_chomage_par_discipline = df.groupby(
-        'discipline')['taux_chomage'].mean().reset_index()
+    df_chomage_par_discipline = df.groupby('discipline')['taux_chomage'].mean().reset_index()
     fig = px.bar(df_chomage_par_discipline, x='discipline',
                     y='taux_chomage', title='Taux de chomage par discipline')
     st.plotly_chart(fig)
 
     st.title('Taux de chomage par discipline (st.bar_chart)')
-    st.bar_chart(df_chomage_par_discipline,
-                    x='discipline', y='taux_chomage')
+    st.bar_chart(df_chomage_par_discipline, x='discipline', y='taux_chomage')
 
     st.markdown("En observant ce barplot, , il est clair que les domaines d'études en lettres (comme l'histoire et les lettres) et les sciences sociales affichent des taux de chômage considérablement plus élevés. En revanche, les domaines de l'informatique et de l'enseignement présentent des taux de chômage nettement plus bas.")
 
-#-------------------------------------------------------------Comparaison taux de chomage par discipline et taux chomage regional ------------------------------------------------------------------#
-
-    #fig = px.bar(df_chomage_par_discipline, x='discipline', y='taux_chomage', title='Taux de chomage par discipline et Taux de chomage regional',
-    #                labels={'taux_chomage': 'Taux de chomage par discipline'})
-    #fig.add_bar(x=df_chomage_par_discipline['discipline'],
-    #            y=df['taux_de_chomage_regional'], name='Taux de chomage régional')
-    #fig.update_layout(barmode='group', xaxis_tickangle=-
-    #                    45, height=600, width=1000)
-
-# st.plotly_chart(fig)
-
-
-#-------------------------------------------------------------Comparaison taux de chomage par domaine et taux chomage regional ------------------------------------------------------------------#
-
-    #df_chomage_par_domaine = df.groupby(
-    #    'domaine')['taux_chomage'].mean().reset_index()
-    #fig = px.bar(df_chomage_par_domaine, x='domaine', y='taux_chomage', title='Taux de chomage par domaine et Taux de chomage regional',
-    #                labels={'taux_chomage': 'Taux de chomage par domaine'})
-    #fig.add_bar(x=df_chomage_par_domaine['domaine'],
-    #            y=df['taux_de_chomage_regional'], name='Taux de chomage régional')
-    #fig.update_layout(barmode='group', xaxis_tickangle=-
-    #                    45, height=600, width=1000)
-
-    # st.plotly_chart(fig)
 
 #-------------------------------------------------------------Comparaison taux de chomage par discipline et taux chomage regional  ------------------------------------------------------------------#
 def display_comparaison_chomage_regional_discipline_domaine(df):                                                                                                                                                                                                                                                                                                          
     df_chomage_par_discipline = df.groupby('discipline')['taux_chomage'].mean().reset_index()
     fig_discipline = px.bar(df_chomage_par_discipline, x='discipline', y='taux_chomage',title='Taux de chomage par discipline et Taux de chomage régional')
     fig_discipline.add_bar(x=df_chomage_par_discipline['discipline'], y=df['taux_de_chomage_regional'], name='Taux de chomage régional')
-    fig_discipline.update_layout(barmode='group', xaxis_tickangle=-45, height=600, width=800)
+    fig_discipline.update_layout(barmode='group', xaxis_tickangle=-45, height=600, width=800) #Le group permet de comparer plus facilement les 2 variables par domaine
     df_chomage_par_domaine = df.groupby('domaine')['taux_chomage'].mean().reset_index()
 
     fig_domaine = px.bar(df_chomage_par_domaine, x='domaine', y='taux_chomage', title='Taux de chomage par domaine et Taux de chomage régional')
@@ -360,6 +369,7 @@ def display_etudiants_exterieurs_region_academie(df) :
 #-------------------------------------------------------------Taux de femmes par discipline------------------------------------------------------------------#
 def display_femmes_discipline(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
     st.subheader("Taux de femmes par discipline")
+
     discipline = st.selectbox('Choisissez une discipline', df['discipline'].unique())
 
     df_filtered = df[df['discipline'] == discipline]
@@ -371,8 +381,8 @@ def display_femmes_discipline(df) :
     st.write(f"Taux d'hommes : {hommes}%")
 
     # Création du pie chart
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.pie([femmes, hommes], labels=['Femmes', 'Hommes'],colors=['#e69adf', '#91b6f2'], autopct='%1.1f%%')
+    fig, ax = plt.subplots(figsize=(3, 3))
+    ax.pie([femmes, hommes], labels=['Femmes', 'Hommes'], colors=['#e69adf', '#91b6f2'], autopct='%1.1f%%')
     plt.title('Répartition par sexe')
     st.pyplot(fig)
     
@@ -380,35 +390,33 @@ def display_femmes_discipline(df) :
 
 def display_femmes_temps(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
     st.subheader("Taux de femmes avec le temps")
-
+    
     annees = df["annee"].unique()
-    selected_annees = st.multiselect("Sélectionnez les années", annees, annees)
-
+    selected_annees = st.multiselect("Sélectionnez les années", annees,annees)
+    
     df_femmes_par_discipline_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee", "discipline"])["femmes"].mean().reset_index()
 
-    fig = px.line(df_femmes_par_discipline_par_annee, x="annee", y="femmes",color="discipline", title="Taux de femmes par discipline et par année")
+    fig = px.line(df_femmes_par_discipline_par_annee, x="annee", y="femmes", color="discipline", title="Taux de femmes par discipline et par année")
     st.plotly_chart(fig)
 
     df_femmes_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee"])["femmes"].mean().reset_index()
-    fig = px.line(df_femmes_par_annee, x="annee", y="femmes",title="Taux de femmes total par année")
+    fig = px.line(df_femmes_par_annee, x="annee", y="femmes", title="Taux de femmes total par année")
     fig.update_yaxes(range=[30, 70])
     st.plotly_chart(fig)
 
-    st.line_chart(df_femmes_par_annee.set_index("annee")["femmes"])
-    st.title("Taux de femmes total par année")
+    st.markdown("Attention : un pourcentage moyen de femmes plus élevé ne veut pas dire qu'il y a plus de femmes que d'hommes au sein des universités.")
+    st.markdown("Exemple : il y a 90% de femmes en psychologie, et 10% de femmes en informatique. Seulement, si il y a 10000 étudiants en informatique et 500 étudiants en psychologie, alors il y aura toujours plus d'hommes que de femmes.")
+    st.markdown("On remarque que le taux de femmes chute complètement au fil des années dans les disciplines des sciences fondamentales et sciences, technologies et santé. On observe légèrement plus de femmes au contraire dans les disciplines juridiques. Malheureusement, le dataset ne nous permet pas de comprendre pourquoi les femmes boudent les compétences scientifiques :pensive:")
 
 #-------------------------------------------------------------Check corrélations entre le taux de femmes et les autres taux------------------------------------------------------------------#
 
 def display_correlation_femme_variables(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
     st.subheader("A quel point le taux de femmes est corrélé avec les autres valeurs de notre dataset ?")
 
-    # Il y a un problème dans le scatter si une des trois colonnes est NaN
-    df1 = df.dropna(subset=['femmes', 'emplois_cadre','taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein'])
-
-    # Conversion des pourcentages en nombres décimaux
+    df1 = df.dropna(subset=['femmes', 'emplois_cadre', 'taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein', 'salaire_net_median_des_emplois_a_temps_plein']) # Il y a un problème dans le scatter si une des trois colonnes est NaN
     df1['femmes'] = df1['femmes'] / 100
-
-    variables = ['emplois_cadre', 'taux_dinsertion','emplois_stables', 'emplois_a_temps_plein']
+    
+    variables = ['emplois_cadre', 'taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein', 'salaire_net_median_des_emplois_a_temps_plein']
     for var in variables:
         df1[var] = df1[var] / 100
 
@@ -422,8 +430,7 @@ def display_correlation_femme_variables(df) :
     plt.ylabel(f'Taux de {variable}')
     st.pyplot(plt)
 
-    st.markdown("Malheureusement, on remarque que toutes les droites de régression vont dans le même sens : plus il y a de femmes dans une filière, moins le salaire à la sortie est ahaut. Il en va de même pour le taux d'insertion, le taux d'emplois stables et le taux d'emplois à temps plein...", unsafe_allow_html=True)
-
+    st.markdown("Malheureusement, on remarque que toutes les droites de régression vont dans le même sens : plus il y a de femmes dans une filière, moins le salaire à la sortie est ahaut. Il en va de même pour le taux d'insertion, le taux d'emplois stables et le taux d'emplois à temps plein... La pente est d'autant plus importante pour les salaires.", unsafe_allow_html=True)
 #-------------------------------------------------------------Taux de femmes par discipline------------------------------------------------------------------#
 def display_femmes_discipline(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
     st.subheader("Taux de femmes par discipline")
@@ -493,8 +500,9 @@ def display_correlation_femme_variables(df) :
 
 #-------------------------------------------------------------Histogrammes par académie------------------------------------------------------------------#
 
-def display_histogramme_academie(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
-    academie_list = df['academie'].unique()
+def display_histogramme_academie(df, academie_list) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+    st.subheader("Histogrammes des salaires par académie.")
+    
     selected_academie = st.selectbox("Sélectionnez une académie :", academie_list)
 
     # Filtrer les données pour l'académie sélectionnée
@@ -502,7 +510,7 @@ def display_histogramme_academie(df) :
 
     # Créer un histogramme des salaires
     fig, ax = plt.subplots()
-    ax.hist(filtered_df['salaire_net_median_des_emplois_a_temps_plein'],bins=20, color='skyblue', edgecolor='black')
+    ax.hist(filtered_df['salaire_net_median_des_emplois_a_temps_plein'], bins=20, color='skyblue', edgecolor='black')
     ax.set_xlabel("Salaire Net Médian (par mois)")
     ax.set_ylabel("Nombre d'Observations")
     ax.set_title(f"Histogramme des Salaires pour l'académie de {selected_academie}")
@@ -510,10 +518,13 @@ def display_histogramme_academie(df) :
     # Afficher le graphique dans Streamlit
     st.pyplot(fig)
 
+    st.markdown("Il existe une corrélation entre les catégories de richesse des régions des académies et les salaires. Par exemple, le salaire médian est plus important en sortie d'académies Parisiennes et plus faible en sortie d'académies Corses. Le dataset ne nous permet pas de quantifier cette corrélation précisément.")
+
 #-------------------------------------------------------------Histogrammes par discipline------------------------------------------------------------------#
 
-def display_histogram_discipliine(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
-    discipline_list = df['discipline'].unique()
+def display_histogram_discipline(df,discipline_list) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+    st.subheader("Histogrammes des salaires par discipline.")
+
     selected_discipline = st.selectbox("Sélectionnez une discipline :", discipline_list)
 
     # Filtrer les données pour l'académie sélectionnée
@@ -521,7 +532,7 @@ def display_histogram_discipliine(df) :
 
     # Créer un histogramme des salaires
     fig, ax = plt.subplots()
-    ax.hist(filtered_df['salaire_net_median_des_emplois_a_temps_plein'],bins=20, color='#fcba03', edgecolor='black')
+    ax.hist(filtered_df['salaire_net_median_des_emplois_a_temps_plein'], bins=20, color='#fcba03', edgecolor='black')
     ax.set_xlabel("Salaire Net Médian (par mois)")
     ax.set_ylabel("Nombre d'Observations")
     ax.set_title(f"Histogramme des Salaires pour la discipline : {selected_discipline}")
@@ -529,6 +540,47 @@ def display_histogram_discipliine(df) :
     # Afficher le graphique dans Streamlit
     st.pyplot(fig)
 
+    st.markdown("Visiblement, les disicplines de sciences 'dures' et de droit gagnent plus que les disciplines d'enseignement et de sciences sociales.")
+    # Afficher le graphique dans Streamlit
+    st.pyplot(fig)
+
+#-------------------------------------------------------------Barplots par discipline et académie------------------------------------------------------------------#
+def display_barplot_par_acad_discipline(df, discipline_list, academie_list):
+    st.subheader("Salaires médians par discipline et par académie.")
+    
+    academie_selectionnee = st.selectbox('Sélectionnez une académie:', academie_list)
+    df_filtre = df[df['academie'] == academie_selectionnee]
+
+    fig, ax = plt.subplots()
+
+    for discipline in discipline_list:
+        df_discipline = df_filtre[df_filtre['discipline'] == discipline]
+        salaire_moyen = df_discipline['salaire_net_median_des_emplois_a_temps_plein'].mean()
+        ax.barh(discipline, salaire_moyen)
+
+    ax.set_xlabel('Salaire moyen')
+    ax.set_ylabel('Discipline')
+    st.pyplot(fig)
+
+    
+#-------------------------------------------------------------Est-ce que les pauvres restent pauvres ?------------------------------------------------------------------#
+def display_pauvres(df):
+    st.subheader("Est-ce que les filières avec beaucoup d'étudiants boursiers ont un salaire médian plus bas ?")
+
+    df2 = df.dropna(subset=['salaire_net_median_des_emplois_a_temps_plein', 'de_diplomes_boursiers'])
+
+    plt.figure(figsize=(10, 6))
+    sns.regplot(x='de_diplomes_boursiers', y='salaire_net_median_des_emplois_a_temps_plein', data=df2, scatter_kws={'s': 2, 'color': '#e08610'}, line_kws={'color': '#8548ab'})
+    plt.title("Corrélation entre le taux de boursiers et les salaires")
+    plt.xlabel('Taux de boursiers')
+    plt.ylabel('Salaires')
+    st.pyplot(plt)
+
+    st.markdown("La courbe de régression montre que plus il y a d'étudiants boursiers dans une formation, plus le salaire en sortie d'études est bas. On peut tirer différentes conclusions de cette observation : est-ce qu'il existe réellement une notion de mérite, si un élève boursier gagne moins qu'un autre élève qui se forme dans la même discipline, au sein de deux formations publiques ?")
+
+#-------------------------------------------------------------MAIN FUNCTION -----------------------------------------------------------------#
+
+@decorator_log_time
 def main():
     
     st.header("Plotting Data")
@@ -567,8 +619,12 @@ def main():
     elif choix == "Salaires":
 
         st.header("Qu'est-ce qui impacte les salaires ?")
-        display_histogramme_academie(df)
-        display_histogram_discipliine(df)
+        academie_list = df['academie'].unique()
+        discipline_list = df['discipline'].unique()
+        display_histogramme_academie(df, academie_list)
+        display_histogram_discipline(df,discipline_list)
+        display_barplot_par_acad_discipline(df, discipline_list, academie_list)
+        display_pauvres(df)
    
 if __name__ == '__main__':
     main()
