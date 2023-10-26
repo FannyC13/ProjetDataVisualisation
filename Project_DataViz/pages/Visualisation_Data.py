@@ -78,7 +78,8 @@ def display_evolution_cadre_discipline(df,annees) :
 
     plot_choice = st.radio("Select a Plot", ["Bar Chart 1", "Line Chart", "Bar Chart 2"])
 
-    if plot_choice == "Bar Chart 1":
+    #Le premier bar chart permet de voir les taux de cadres par année
+    if plot_choice == "Bar Chart 1": 
         fig = px.bar(df_cadres_par_discipline_par_annee, x="discipline",y="emplois_cadre", title="Nombre d'emplois cadre par discipline")
         st.plotly_chart(fig)
 
@@ -87,7 +88,7 @@ def display_evolution_cadre_discipline(df,annees) :
         fig = px.line(df_cadres_par_discipline_par_annee, x="annee", y="emplois_cadre",color="discipline", title="Nombre d'emplois cadre par discipline")
         st.plotly_chart(fig)
 
-    #Le bar chart stacked permettra de mieux visualiser l'évolution globale du nombre de cadres
+    #Le second bar chart stacked permettra de mieux visualiser l'évolution globale du nombre de cadres en fonction de chaque discipline
     elif plot_choice == "Bar Chart 2":
         fig = px.bar(df_cadres_par_discipline_par_annee, x="annee", y="emplois_cadre",color="discipline", title="Nombre d'emplois cadre par discipline")
         st.plotly_chart(fig)
@@ -104,6 +105,8 @@ def display_taux_insertion_par_discipline(df,annees) :
 
     fig = px.bar(df_insertion_par_disicpline_par_annee, x="discipline", y="taux_dinsertion", title="Taux d'insertion par discipline")
     fig.update_traces(marker_color="#89a674")
+
+    #Permet de rajouter des annotations à chaque barre
     for i in range(len(df_insertion_par_disicpline_par_annee)):
         discipline = df_insertion_par_disicpline_par_annee.loc[i, "discipline"]
         taux_insertion = df_insertion_par_disicpline_par_annee.loc[i,"taux_dinsertion"]
@@ -140,7 +143,7 @@ def display_taux_insertion_par_academie(df,annees) :
         fig.add_annotation(
             x=academie,
             y=taux_insertion,
-            text=f"{taux_insertion_percentage} ", #Ajout de l'annotation pour le taux d'insertion en pourcentage
+            text=f"{taux_insertion_percentage} ", # Ajout de l'annotation pour le taux d'insertion en pourcentage
             showarrow=False,
             font=dict(size=9),
             yshift=13
@@ -286,14 +289,16 @@ def display_taux_insertion_situation_domaine_discipline(df):
     fig_situation_domaine.update_traces(marker_color="#EF9595", selector={"name": "Taux dinsertion après 18 mois"})
     fig_situation_domaine.update_layout(barmode='group', xaxis_tickangle=-45, height=600, width=550, showlegend=True)
 
-#-------------------------------------------------------------Taux dinsertion par discipline et situation ------------------------------------------------------------------#
+#-------------------------------------------------------------Taux d'insertion par discipline et situation ------------------------------------------------------------------#
 
+    #Même principe, mais par discipline et non par domaine
     df_avant_18_mois_discipline = df_avant_18_mois.groupby('discipline')['taux_dinsertion'].mean().reset_index()
     df_apres_18_mois_discipline = df_apres_18_mois.groupby('discipline')['taux_dinsertion'].mean().reset_index()
 
     fig_situation_discipline = px.bar(df_avant_18_mois_discipline, x='discipline',y='taux_dinsertion', title='Taux dinsertion par domaine et situation')
     fig_situation_discipline.update_traces(marker_color="#F2D8D8")
     fig_situation_discipline.add_bar(x=df_apres_18_mois_discipline['discipline'], y=df['taux_dinsertion'], name='Taux dinsertion après 18 mois')
+    
     fig_situation_discipline.update_traces(marker_color="#EF9595", selector={"name": "Taux dinsertion après 18 mois"})
     fig_situation_discipline.update_layout(barmode='group', xaxis_tickangle=-45, height=700, width=800)
 
@@ -325,8 +330,9 @@ def display_etudiants_exterieurs_region_discipline(df) :
 
 #-------------------------------------------------------------Plot Etudiants extérieurs région par région académique ------------------------------------------------------------------#
 
-def display_etudiants_exterieurs_region_academie(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
-    df["nombre_emplois"] = df["nombre_de_reponses"]*df["taux_dinsertion"]/100
+def display_etudiants_exterieurs_region_academie(df) :      
+
+    df["nombre_emplois"] = df["nombre_de_reponses"]*df["taux_dinsertion"]/100 # "Taux d'insertion" est en pourcentage d'où la division par 100. 
     df_region = pd.read_csv('academie_region.csv', delimiter=";") #Ajout des régions d'études
     df_region_acad = pd.merge(df, df_region, on='academie', how='inner')
     df_exterieurs_acad = df_region_acad.groupby('region')[['emplois_exterieurs_a_la_region_de_luniversite', 'nombre_emplois']].sum().reset_index()
@@ -341,18 +347,20 @@ def display_etudiants_exterieurs_region_academie(df) :
 
 #-------------------------------------------------------------Taux de femmes par discipline------------------------------------------------------------------#
 
-def display_femmes_discipline(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+def display_femmes_discipline(df) :      
+    # Pie charts avec filtre pour pouvoir sélectionner la discipline voulue.
     st.subheader("Taux de femmes par discipline")    
 
+    # Select box = dropdown filter
     discipline = st.selectbox('Choisissez une discipline', df['discipline'].unique())
-
     df_filtered = df[df['discipline'] == discipline]
+    
     femmes = df_filtered['femmes'].mean()
-    hommes = 100 - femmes
+    hommes = 100 - femmes # On n'a pas le taux d'hommes dans le dataset, on fait donc 100 - femmes. Cette méthode ne prend pas en compte les autres identités de genre ce qui s'avère imprécis, mais nous n'avons pas le choix
     st.write(f"Taux de femmes : {femmes}%")
     st.write(f"Taux d'hommes : {hommes}%")
-    fig = go.Figure(data=[go.Pie(labels=['Femmes', 'Hommes'], values=[femmes, hommes], marker_colors=['#e69adf', '#91b6f2'])])
-    fig.update_layout(title_text='Répartition par sexe')
+    fig = go.Figure(data=[go.Pie(labels=['Femmes', 'Hommes'], values=[femmes, hommes], marker_colors=['#e69adf', '#91b6f2'])]) # Utilisation de la librairy Graph Objects de plotly pour le piechart
+    fig.update_layout(title_text='Répartition par genre')
     st.plotly_chart(fig)
 
     
@@ -366,18 +374,21 @@ def display_femmes_temps(df) :
     selected_annees = st.multiselect("Sélectionnez les années", annees, annees)
 
     
+    # Permet d'afficher les deux graphiques l'un à côté de l'autre
     col1, col2 = st.columns(2)
 
     with col1:
         
         df_femmes_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee"])["femmes"].mean().reset_index()
         st.markdown("**Taux de femmes total par année**")
+        # Slider pour permettre de filtrer les années 
         x_axis_range = st.slider("Select x-axis range", min_value=min(df_femmes_par_annee['annee']), max_value=max(df_femmes_par_annee['annee']), value=(min(df_femmes_par_annee['annee']), max(df_femmes_par_annee['annee'])))
         st.line_chart(df_femmes_par_annee.query(f"annee >= {x_axis_range[0]} and annee <= {x_axis_range[1]}"), x="annee", y="femmes")
 
     with col2:
         st.markdown("**Taux de femmes par discipline et par année**")
         df_femmes_par_discipline_par_annee = df[df["annee"].isin(selected_annees)].groupby(["annee", "discipline"])["femmes"].mean().reset_index()
+        # On cherche à plot un graph avec une ligne par discipline. Plotly nous permet de le faire optimalement
         fig = px.line(df_femmes_par_discipline_par_annee, x="annee", y="femmes", color="discipline")
         st.plotly_chart(fig)
 
@@ -390,7 +401,8 @@ def display_femmes_temps(df) :
 def display_correlation_femme_variables(df) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
         st.subheader("A quel point le taux de femmes est corrélé avec les autres valeurs de notre dataset ?")
 
-        df1 = df.dropna(subset=['femmes', 'emplois_cadre', 'taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein', 'salaire_net_median_des_emplois_a_temps_plein']) # Il y a un problème dans le scatter si une des trois colonnes est NaN
+        # Le graph ne peut pas se plot si une observation a un NaN dans l'une des colonnes du plot.
+        df1 = df.dropna(subset=['femmes', 'emplois_cadre', 'taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein', 'salaire_net_median_des_emplois_a_temps_plein']) 
         df1['femmes'] = df1['femmes'] / 100
         
         variables = ['emplois_cadre', 'taux_dinsertion', 'emplois_stables', 'emplois_a_temps_plein', 'salaire_net_median_des_emplois_a_temps_plein']
@@ -415,11 +427,9 @@ def display_histogramme_academie(df, academie_list) :
     st.subheader("Histogrammes des salaires par académie.")
     
     selected_academie = st.selectbox("Sélectionnez une académie :", academie_list)
-
-    # Filtrer les données pour l'académie sélectionnée
     filtered_df = df[df['academie'] == selected_academie]
 
-    # Créer un histogramme des salaires
+    # Histogrammes des salaires par académie
     fig, ax = plt.subplots()
     ax.hist(filtered_df['salaire_net_median_des_emplois_a_temps_plein'], bins=20, color='#8AA6A8', edgecolor='black')
     ax.set_xlabel("Salaire Net Médian (par mois)")
@@ -433,15 +443,13 @@ def display_histogramme_academie(df, academie_list) :
 
 #-------------------------------------------------------------Histogrammes par discipline------------------------------------------------------------------#
 
-def display_histogram_discipline(df,discipline_list) :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+def display_histogram_discipline(df,discipline_list) :         # même principe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
     st.subheader("Histogrammes des salaires par discipline.")
 
     selected_discipline = st.selectbox("Sélectionnez une discipline :", discipline_list)
-
-    # Filtrer les données pour l'académie sélectionnée
     filtered_df = df[df['discipline'] == selected_discipline]
 
-    # Créer un histogramme des salaires
+    # Histogramme des salaires par discipline
     fig, ax = plt.subplots()
     ax.hist(filtered_df['salaire_net_median_des_emplois_a_temps_plein'], bins=20, color='#77967C', edgecolor='black')
     ax.set_xlabel("Salaire Net Médian (par mois)")
@@ -482,7 +490,8 @@ def display_barplot_par_acad_discipline(df, discipline_list, academie_list):
     df_filtre = df[df['academie'] == academie_selectionnee]
 
     fig, ax = plt.subplots()
-
+*    
+    #Barchart horizontal (d'où 'barh') pour chaque discipline. On le fait en barh pour améliorer la compréhension.
     for discipline in discipline_list:
         df_discipline = df_filtre[df_filtre['discipline'] == discipline]
         salaire_moyen = df_discipline['salaire_net_median_des_emplois_a_temps_plein'].mean()
@@ -497,6 +506,7 @@ def display_barplot_par_acad_discipline(df, discipline_list, academie_list):
 def display_pauvres(df):
     st.subheader("Est-ce que les filières avec beaucoup d'étudiants boursiers ont un salaire médian plus bas ?")
 
+    # Le plot ne peut pas être fait si les observations ont un NaN dans les colonnes spécifiées
     df2 = df.dropna(subset=['salaire_net_median_des_emplois_a_temps_plein', 'de_diplomes_boursiers'])
 
     plt.figure(figsize=(10, 6))
