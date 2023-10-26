@@ -58,26 +58,25 @@ with tab1:
     
 
 with tab2:
-    @st.cache
+    #Utilisation de la bibliotheque ydata_profiling 
+    @st.cache_data
     def generate_report(df):
         report = ProfileReport(df, title="Profiling Report", minimal=True)
         return report
         
     st.header("Test Profile")
     report_generated = False
-    report = ProfileReport(df, title="Profiling Report", minimal=True)
+    report = generate_report(df)
 
     report_generated = False
     report_downloaded = False
-
-    report = ProfileReport(df, title="Profiling Report", minimal=True)
-    import time
 
     if not report_generated:
         if st.button("Generate HTML Report", key="generate_report_button"):
             st.info("Generating report...")
             st_profile_report(report)
             report_generated = True
+
 
 with tab3:
     st.header("Data Cleaning :broom:")
